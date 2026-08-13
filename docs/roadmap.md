@@ -24,7 +24,7 @@ This document captures the ordered sequence of work to reach each milestone. The
 - `bin/ppv vote <option-id> ...` validates approvals against the manifest, resolves the voter's gpg key from the local keyring (chooser when >1 match per threat-model first-open UX), builds the ballot JSON with the correct `manifest_hash`, writes `ballots/<fingerprint>.json`. With `fossil` on PATH, **auto-invokes** `fossil add` / `ci` to commit the ballot (clearsign engaged). Falls back to printed manual instructions when fossil is unavailable.
 - `lib/gpg.js` wraps `gpg --list-secret-keys --with-colons` and multi-recipient `--encrypt --armor` for both subcommands.
 - `build/build-fossil.sh` incorporates the SEE-reuse approach (`--with-see=1`, `src/sqlite3-see.c`); drops `--with-tcl` since the CLI is now standalone.
-- `build/patches/fossil-db-key.patch` written: mode-aware key source (`FOSSIL_PPV_KEY` env var > gpg-decrypt `keys/master.key.asc` > stock prompt under `FOSSIL_PPV_STOCK_PROMPT=1`). Verified to apply cleanly against pinned Fossil 2.28; full compile awaits LibreSSL install.
+- `build/patches/fossil-db-key.patch` written: mode-aware key source (`FOSSIL_PPV_KEY` env var > gpg-decrypt `keys/master.key.asc` > stock prompt under `FOSSIL_PPV_STOCK_PROMPT=1`). Verified to apply cleanly against pinned Fossil 2.28; full compile awaits LibreSSL install. (Later factored out into the shared `fossil-see` project and renamed to `FOSSIL_SEE_KEY`/`FOSSIL_SEE_STOCK_PROMPT` — see `docs/threat-model.md`; this entry is left as-written for the historical record.)
 - Protocol abbreviation renamed `ppp` → `ppv` (avoids PGP collision); schema version is `"ppv/1"`.
 
 **Stubbed or missing:**

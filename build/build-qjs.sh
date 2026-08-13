@@ -5,9 +5,11 @@ set -euo pipefail
 # against LibreSSL libcrypto, so JS code can `import { sha3_256, shake128,
 # randomBytes } from "ppv-crypto"` in-process — no openssl on PATH.
 #
-# Assumes LibreSSL has already been built by build/build-fossil.sh (or that
-# the user pointed LIBRESSL_PREFIX at an external prefix containing libcrypto.a
-# and the OpenSSL-compatible headers).
+# Assumes LibreSSL has already been built by build/build-fossil.sh, which
+# delegates to vendor/fossil-see and builds LibreSSL as a side effect at
+# vendor/fossil-see/vendor/libressl-build-out (or that the user pointed
+# LIBRESSL_PREFIX at an external prefix containing libcrypto.a and the
+# OpenSSL-compatible headers).
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -16,7 +18,7 @@ OUTPUT_DIR="${OUTPUT_DIR:-$SCRIPT_DIR/dist}"
 # shellcheck source=./versions.env
 . "$SCRIPT_DIR/versions.env"
 
-: "${LIBRESSL_PREFIX:=$REPO_ROOT/vendor/libressl-build-out}"
+: "${LIBRESSL_PREFIX:=$REPO_ROOT/vendor/fossil-see/vendor/libressl-build-out}"
 : "${QUICKJS_SRC:=$REPO_ROOT/vendor/quickjs}"
 
 if [ -z "${JOBS:-}" ]; then

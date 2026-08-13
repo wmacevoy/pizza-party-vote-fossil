@@ -154,17 +154,17 @@ Because the roster is frozen at genesis, mode-2 key management has no membership
 
 Out of v1 scope. Sketch for future reference: each voter has their own key, no key sharing; appropriate when peers do not trust each other but still want to vote on a common set of options. The mechanism would resemble per-voter PGP-wrap of a per-voter SQLCipher key, with no shared blob in the repo. The build should reject `rule.privacy = "individual"` for v1 with an explanatory error message so the door is open without implementing it.
 
-## What this implies for `build/build-fossil.sh`
+## What this implies for the key-source patch
 
-`build/patches/fossil-db-key.patch` should:
+This behavior is implemented by `fossil-db-key.patch`, which now lives in the shared [`fossil-see`](https://github.com/wmacevoy/fossil-sqlcipher-libressl) project (vendored here as `vendor/fossil-see`; see `vendor/fossil-see/build/patches/fossil-db-key.patch` and `vendor/fossil-see/docs/SECURITY.md` for the generic mechanism). `build/build-fossil.sh` here is a thin wrapper around `vendor/fossil-see/build/build.sh` and no longer applies any patches itself. The patch:
 
-1. Read `rule.privacy` from the manifest at `db_open` time. The manifest is the genesis artifact and is always accessible via Fossil's blob store before any encrypted DB access.
-2. If `rule.privacy == "public"`, skip `PRAGMA key` entirely. Behaves as stock Fossil + SQLite.
-3. If `rule.privacy == "group"`, locate `keys/master.key.asc` (committed to the repo) and shell out to `gpg --decrypt --output - keys/master.key.asc` to recover `K`. No `--batch` flag — that lets `gpg-agent` broker interactive passphrase entry and smart-card prompts when needed. Read decrypted bytes from gpg's stdout; check exit code; issue `PRAGMA key = "x'<K hex>'";` and zeroize the in-memory copy of `K`.
-4. If `rule.privacy == "individual"`, error out with "individual mode not supported in this build of fossil-ppv; see docs/threat-model.md mode 3."
-5. Honor the `FOSSIL_PPV_KEY` env var as a mode-2 escape hatch: if set, use its value directly as `K` and skip the gpg-decrypt step. Documented as testing/CI-only; the README must flag that this defeats the at-rest protection while the variable is in the process environment.
+1. Reads `rule.privacy` from the manifest at `db_open` time. The manifest is the genesis artifact and is always accessible via Fossil's blob store before any encrypted DB access.
+2. If `rule.privacy == "public"`, skips `PRAGMA key` entirely. Behaves as stock Fossil + SQLite.
+3. If `rule.privacy == "group"`, locates `keys/master.key.asc` (committed to the repo) and shells out to `gpg --decrypt --output - keys/master.key.asc` to recover `K`. No `--batch` flag — that lets `gpg-agent` broker interactive passphrase entry and smart-card prompts when needed. Reads decrypted bytes from gpg's stdout; checks exit code; issues `PRAGMA key = "x'<K hex>'";` and zeroizes the in-memory copy of `K`.
+4. If `rule.privacy == "individual"`, errors out with "individual mode not supported in this build of fossil-ppv; see docs/threat-model.md mode 3."
+5. Honors the `FOSSIL_SEE_KEY` env var (renamed from `FOSSIL_PPV_KEY` when the patch moved into fossil-see — the mechanism isn't voting-specific) as a mode-2 escape hatch: if set, uses its value directly as `K` and skips the gpg-decrypt step. Documented as testing/CI-only; defeats the at-rest protection while the variable is in the process environment.
 
-The patch is small (~50-80 lines once gpg-shellout error handling is included). The trickier parts are robustly invoking `gpg-agent` (so the user is not re-prompted on every operation) and handling the not-on-roster case in step 1 of the first-open UX.
+The trickier parts are robustly invoking `gpg-agent` (so the user is not re-prompted on every operation) and handling the not-on-roster case in step 1 of the first-open UX.
 
 ## Resolved decisions
 

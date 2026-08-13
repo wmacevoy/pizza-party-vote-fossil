@@ -182,6 +182,20 @@ else
     echo "  WARN: patches/fossil-db-key.patch absent — built binary will use Fossil's stock SEE prompt-for-passphrase behavior, not the mode-aware ppv flow"
 fi
 
+# patches/fossil-server-key-validator.patch fixes `fossil server` with
+# SEE/SQLCipher: server startup pre-allocates a zeroed saved-key page and the
+# unvalidated pointer check in db_maybe_obtain_encryption_key then skips every
+# key source, so all repo opens fail SQLITE_NOTADB. Applies on top of
+# fossil-db-key.patch (also applies to stock db.c, with offset). Without it,
+# only one-shot CLI/CGI invocations of the encrypted repo work; a long-running
+# `fossil-ppv server` does not. See patches/README.md.
+if [ -f "$SCRIPT_DIR/patches/fossil-server-key-validator.patch" ]; then
+    echo "  applying fossil-server-key-validator.patch"
+    ( cd "$FOSSIL_SRC" && patch -p1 < "$SCRIPT_DIR/patches/fossil-server-key-validator.patch" )
+else
+    echo "  WARN: patches/fossil-server-key-validator.patch absent — 'fossil-ppv server' will fail to open *.efossil repos (SQLITE_NOTADB); one-shot CLI use is unaffected"
+fi
+
 # (Earlier versions of this script carried xsystem.c sed shims for
 # sqlite3_str_free and sqlite3_format_query_result. Those symbols now
 # exist in vendor/sqlcipher-libressl's SQLite 3.53.1 baseline + Fossil's
